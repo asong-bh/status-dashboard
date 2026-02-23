@@ -239,7 +239,7 @@
 
 <header>
   <div class="header-left">
-    <h1>Clinic Operations</h1>
+    <h1>BH Operations</h1>
     <h2>System Status Dashboard</h2>
   </div>
   <div class="header-right">
@@ -261,7 +261,7 @@
     <div class="card-arrow">↗</div>
   </a>
 
-  <a class="card loading" href="https://status.dosespot.com" target="_blank" data-type="statuspage" data-url="https://status.dosespot.com/api/v2/summary.json">
+  <a class="card loading" href="https://status.dosespot.com" target="_blank" data-type="ping" data-url="https://status.dosespot.com">
     <div class="status-dot"></div>
     <div class="card-info">
       <div class="card-name">DoseSpot</div>
@@ -281,7 +281,7 @@
     <div class="card-arrow">↗</div>
   </a>
 
-  <a class="card loading" href="https://statusgator.com/services/fullscript" target="_blank" data-type="statuspage" data-url="https://status.fullscript.com/api/v2/summary.json">
+  <a class="card loading" href="https://statusgator.com/services/fullscript" target="_blank" data-type="ping" data-url="https://statusgator.com/services/fullscript">
     <div class="status-dot"></div>
     <div class="card-info">
       <div class="card-name">Fullscript</div>
@@ -301,7 +301,7 @@
     <div class="card-arrow">↗</div>
   </a>
 
-  <a class="card manual" href="https://www.morfhealth.com" target="_blank">
+  <a class="card manual" href="https://admin.morf.health/" target="_blank">
     <div class="status-dot"></div>
     <div class="card-info">
       <div class="card-name">Morf Health</div>
@@ -316,7 +316,7 @@
 <!-- COMMUNICATIONS & SUPPORT -->
 <div class="section-label">Communications &amp; Support</div>
 <div class="grid">
-  <a class="card loading" href="https://status.slack.com" target="_blank" data-type="statuspage" data-url="https://status.slack.com/api/v2/summary.json">
+  <a class="card loading" href="https://status.slack.com" target="_blank" data-type="ping" data-url="https://status.slack.com">
     <div class="status-dot"></div>
     <div class="card-info">
       <div class="card-name">Slack</div>
@@ -336,7 +336,7 @@
     <div class="card-arrow">↗</div>
   </a>
 
-  <a class="card loading" href="https://workspace.google.com/appsstatus/dashboard/" target="_blank" data-type="google">
+  <a class="card loading" href="https://workspace.google.com/appsstatus/dashboard/" target="_blank" data-type="ping" data-url="https://workspace.google.com">
     <div class="status-dot"></div>
     <div class="card-info">
       <div class="card-name">Google Workspace</div>
@@ -487,6 +487,24 @@
     }
   }
 
+  // ── Ping check: just see if the site responds ─────────
+  async function pingCheck(card) {
+    const url = card.dataset.url;
+    const data = await fetchWithProxy(url);
+    // If we got any response back, the site is reachable
+    if (data !== null) {
+      applyStatus(card, 'operational', 'OK');
+    } else {
+      // Try a raw fetch as last resort
+      try {
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(7000) });
+        applyStatus(card, res.ok ? 'operational' : 'outage', res.ok ? 'OK' : 'Down');
+      } catch (_) {
+        applyStatus(card, 'unknown', '—');
+      }
+    }
+  }
+
   // ── Main fetch dispatcher ──────────────────────────────
   async function fetchCard(card) {
     const type = card.dataset.type;
@@ -494,8 +512,8 @@
 
     if (type === 'manual') return; // skip manual cards
 
-    if (type === 'google') {
-      await fetchGoogleStatus(card);
+    if (type === 'ping') {
+      await pingCheck(card);
       return;
     }
 
